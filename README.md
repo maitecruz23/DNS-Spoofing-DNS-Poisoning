@@ -19,9 +19,7 @@ Específicamente, el script:
 
 ## 🖥️ Topología de Red
 
-```
-   <img width="1749" height="1212" alt="image" src="https://github.com/user-attachments/assets/e579dded-227c-46e0-a376-02a6cb00ea8b" />
-
+<img width="2053" height="1236" alt="image" src="https://github.com/user-attachments/assets/17e1bf03-573b-470d-8e09-8fdf1c2f4ebf" />
 
 
 ```
@@ -91,9 +89,7 @@ El script escucha en el puerto 53 y responde a consultas del dominio `itla.edu.d
 ### Resultado en la Víctima
 Desde el host víctima, al hacer `ping itla.edu.do`, el dominio resuelve a la IP del atacante (`20.24.11.10`) en lugar de la IP legítima:
 
-```
-<img width="789" height="259" alt="image" src="https://github.com/user-attachments/assets/51c3ea04-9394-4ed6-9785-4ea83450cf7f" />
-
+<img width="1207" height="391" alt="image" src="https://github.com/user-attachments/assets/c293e9d0-73d6-42f7-8c27-9f0bbb82b429" />
 
 ```
 
