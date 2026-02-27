@@ -20,7 +20,8 @@ Específicamente, el script:
 ## 🖥️ Topología de Red
 
 ```
-       <img width="1120" height="1088" alt="image" src="https://github.com/user-attachments/assets/99925970-a081-4e42-b3e7-40316226f353" />
+   <img width="1749" height="1212" alt="image" src="https://github.com/user-attachments/assets/e579dded-227c-46e0-a376-02a6cb00ea8b" />
+
 
 
 ```
