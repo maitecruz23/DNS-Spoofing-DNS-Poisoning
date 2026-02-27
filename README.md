@@ -4,6 +4,12 @@
 > Matrícula: 2024-2026 | Maite Cruz
 
 ---
+Video de Youtube
+
+https://youtu.be/01b5HuBCixk
+
+
+
 
 ## 📌 Objetivo del Script
 
