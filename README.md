@@ -1,7 +1,7 @@
 # 🕵️ DNS Spoofing / DNS Poisoning Attack
 
 > **Laboratorio de Seguridad en Redes** — ITLA  
-> Matrícula: 2024-2026 | Maite Cruz
+> Matrícula: 2024-2026 | Maitte Cruz
 
 ---
 Video de Youtube
