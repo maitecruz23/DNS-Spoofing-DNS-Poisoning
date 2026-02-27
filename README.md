@@ -20,27 +20,9 @@ Específicamente, el script:
 ## 🖥️ Topología de Red
 
 ```
-                    ┌──────────┐
-                    │  vIOS    │  Gi0/0 → 20.24.11.1/24
-                    │ (Router) │
-                    └────┬─────┘
-                         │ Gi0/0
-                    ┌────┴─────────┐
-                    │Switch Central│  VLAN 1 → 20.24.11.2/24
-                    └──┬─────┬──┬──┘
-               Gi0/1   │  Gi0/3 │  Gi0/2
-          ┌────────────┘        │          └────────────┐
-   ┌──────┴──────┐         (directo)          ┌─────────┴──────┐
-   │ Switch IZQ  │                            │  Switch DER    │
-   │20.24.11.3/24│                            │ 20.24.11.4/24  │
-   └──────┬──────┘                            └────────┬───────┘
-        Gi0/1                                        Gi0/1
-          │ e0                                          │ e0
-   ┌──────┴──────┐            ┌──────┐        ┌────────┴───────┐
-   │ Win (IZQ)   │            │ Win  │        │  Linux         │
-   │ 20.24.1.10  │            │(Win) │        │ 20.24.2.10/24  │
-   │  (atacante) │            └──────┘        │   (víctima)    │
-   └─────────────┘                            └────────────────┘
+       <img width="1120" height="1088" alt="image" src="https://github.com/user-attachments/assets/99925970-a081-4e42-b3e7-40316226f353" />
+
+
 ```
 
 ### 📋 Tabla de Direccionamiento IP
@@ -109,16 +91,9 @@ El script escucha en el puerto 53 y responde a consultas del dominio `itla.edu.d
 Desde el host víctima, al hacer `ping itla.edu.do`, el dominio resuelve a la IP del atacante (`20.24.11.10`) en lugar de la IP legítima:
 
 ```
-C:\Windows\system32> ping itla.edu.do
+<img width="789" height="259" alt="image" src="https://github.com/user-attachments/assets/51c3ea04-9394-4ed6-9785-4ea83450cf7f" />
 
-Pinging itla.edu.do [20.24.11.10] with 32 bytes of data:
-Reply from 20.24.11.10: bytes=32 time=170ms TTL=64
-Reply from 20.24.11.10: bytes=32 time=26ms  TTL=64
-Reply from 20.24.11.10: bytes=32 time=38ms  TTL=64
-Reply from 20.24.11.10: bytes=32 time=30ms  TTL=64
 
-Packets: Sent = 4, Received = 4, Lost = 0 (0% loss)
-Minimum = 26ms, Maximum = 170ms, Average = 66ms
 ```
 
 ✅ **El ataque fue exitoso**: el dominio `itla.edu.do` fue redirigido a `20.24.11.10` (servicio controlado por el atacante).
@@ -150,19 +125,53 @@ Aislar los servidores DNS en segmentos de red protegidos y aplicar ACLs para que
 
 ---
 
-## 📁 Estructura del Repositorio
+10. 🔐 Configuración RADIUS (AAA)
+La topología implementa autenticación AAA mediante un servidor RADIUS en Windows Server NPS para autenticar los accesos al router y switches vía RADIUS, con fallback local.
+10. 🔐 Configuración RADIUS (AAA)
+# Configuración RADIUS - Windows Server NPS
 
-```
-DNS-Spoofing-DNS-Poisoning/
-├── Script ATAQUE DNS          # Script Python del servidor DNS falso
-├── Configuracion del router   # Configuración vIOS Router
-├── Configuracion Switch Central-L3
-├── Configuracion SW-IZQ
-├── Configuracion SW-DER
-├── Configuracion-RADIUS-NPS   # Configuración autenticación AAA/RADIUS
-└── README.md                  # Este documento
-```
+## Servidor RADIUS
+- Sistema Operativo: Windows Server 2019
+- IP: 20.24.11.100
+- Máscara: 255.255.255.0
+- Gateway: 20.24.11.1
 
+## Configuración NPS
+- Cliente RADIUS: Router_Cisco
+- IP del cliente: 20.24.11.1
+- Shared Secret: cisco123
+- Puerto autenticación: 1812
+- Puerto contabilidad: 1813
+
+## Usuario RADIUS creado
+- Username: admin_radius
+- Password: Admin123!
+- Grupo: Administrators
+- Dial-in: Allow Access
+
+## Configuración Router (AAA)
+radius server Servidor_Windows
+ address ipv4 20.24.11.100 auth-port 1812 acct-port 1813
+ key cisco123
+
+aaa new-model
+aaa authentication login default group radius local
+aaa authorization exec default group radius local if-authenticated
+
+## Verificación
+test aaa group radius admin_radius Admin123! legacy
+show aaa servers
+show aaa sessions
+
+aaa new-model
+
+aaa new-model
+aaa authentication login default group radius local
+aaa authorization exec default group radius local if-authenticated
+Verificación
+ciscotest aaa group radius admin_radius Admin123! legacy
+show aaa servers
+show aaa sessions
 ---
 
 ## ⚠️ Disclaimer
